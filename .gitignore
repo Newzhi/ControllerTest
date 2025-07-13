@@ -3,7 +3,7 @@
 # Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
 #
 # 临时文件目录
-ControllerTest/
+# ControllerTest/
 .utmp/
 
 # Unity 自动生成的目录
@@ -98,3 +98,15 @@ crashlytics-build.properties
 /[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Flow/UnitOptions.db.meta
 /[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers
 /[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers.meta
+
+# 忽略所有目录下的 Library 文件夹
+**/[Ll]ibrary/
+
+# 忽略所有目录下的 Unity 自动生成的文件夹
+**/[Ll]ibrary/
+**/[Tt]emp/
+**/[Oo]bj/
+**/[Bb]uild/
+**/[Bb]uilds/
+**/[Ll]ogs/
+**/[Uu]ser[Ss]ettings/
