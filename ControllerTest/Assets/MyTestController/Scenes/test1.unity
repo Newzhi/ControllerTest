@@ -721,7 +721,7 @@ PrefabInstance:
     - target: {fileID: 4337951940469451877, guid: f157c82ccf0e4f241b7cb3d87d2d4ed6,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.38944483
+      value: 0.575
       objectReference: {fileID: 0}
     - target: {fileID: 4337951940469451877, guid: f157c82ccf0e4f241b7cb3d87d2d4ed6,
         type: 3}
@@ -773,6 +773,31 @@ PrefabInstance:
       propertyPath: m_Name
       value: Test01
       objectReference: {fileID: 0}
+    - target: {fileID: 6594078019051701799, guid: f157c82ccf0e4f241b7cb3d87d2d4ed6,
+        type: 3}
+      propertyPath: serializeData2.selectionData.positions.Array.data[0].y
+      value: 1.483078
+      objectReference: {fileID: 0}
+    - target: {fileID: 6594078019051701799, guid: f157c82ccf0e4f241b7cb3d87d2d4ed6,
+        type: 3}
+      propertyPath: serializeData2.selectionData.positions.Array.data[1].y
+      value: 1.4438081
+      objectReference: {fileID: 0}
+    - target: {fileID: 6594078019051701799, guid: f157c82ccf0e4f241b7cb3d87d2d4ed6,
+        type: 3}
+      propertyPath: serializeData2.selectionData.positions.Array.data[4].y
+      value: 1.5148177
+      objectReference: {fileID: 0}
+    - target: {fileID: 6594078019051701799, guid: f157c82ccf0e4f241b7cb3d87d2d4ed6,
+        type: 3}
+      propertyPath: serializeData2.selectionData.positions.Array.data[6].y
+      value: 1.4966772
+      objectReference: {fileID: 0}
+    - target: {fileID: 6594078019051701799, guid: f157c82ccf0e4f241b7cb3d87d2d4ed6,
+        type: 3}
+      propertyPath: serializeData2.selectionData.positions.Array.data[7].y
+      value: 1.4570906
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -781,6 +806,14 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 5102316049668101900}
+    - targetCorrespondingSourceObject: {fileID: 5705685440182905787, guid: f157c82ccf0e4f241b7cb3d87d2d4ed6,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5102316049668101902}
+    - targetCorrespondingSourceObject: {fileID: 5705685440182905787, guid: f157c82ccf0e4f241b7cb3d87d2d4ed6,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5102316049668101901}
   m_SourcePrefab: {fileID: 100100000, guid: f157c82ccf0e4f241b7cb3d87d2d4ed6, type: 3}
 --- !u!1 &5102316048935087572 stripped
 GameObject:
@@ -815,26 +848,142 @@ MonoBehaviour:
       m_Calls: []
   m_ActionEvents:
   - m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 5102316049668101902}
+        m_TargetAssemblyTypeName: TPC_Base, Assembly-CSharp
+        m_MethodName: GetMoveInput
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
     m_ActionId: 8421dddf-09d3-49cd-9083-931afc4e9bdf
     m_ActionName: Player/Player Move[/Keyboard/w,/Keyboard/s,/Keyboard/a,/Keyboard/d]
   - m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 5102316048935087572}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: 
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
     m_ActionId: cde22c08-871b-4edb-b98b-9af7e74706df
     m_ActionName: Player/Look[/Mouse/delta]
   - m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 5102316049668101902}
+        m_TargetAssemblyTypeName: TPC_Base, Assembly-CSharp
+        m_MethodName: GetRunInput
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
     m_ActionId: a0175433-dd93-4ca6-882c-27666dbed1e1
     m_ActionName: Player/Run
   - m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 5102316049668101902}
+        m_TargetAssemblyTypeName: TPC_Base, Assembly-CSharp
+        m_MethodName: GetCrouchInput
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
     m_ActionId: d19a6927-e991-4407-b938-7d7ea1a2c329
     m_ActionName: Player/Crouch
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5102316049668101902}
+        m_TargetAssemblyTypeName: TPC_Base, Assembly-CSharp
+        m_MethodName: GetJumpInput
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 0d041288-4195-4f5b-9eae-86b98b99a807
+    m_ActionName: Player/Jump[/Keyboard/space]
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
+--- !u!143 &5102316049668101901
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5102316048935087572}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 1.11
+  m_Radius: 0.24
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0.49, z: 0}
+--- !u!114 &5102316049668101902
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5102316048935087572}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4755face975e41408e8aeee19805d9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerTransform: {fileID: 0}
+  animator: {fileID: 0}
+  cameraTransform: {fileID: 912041497}
+  characterController: {fileID: 5102316049668101901}
+  playerPosture: 1
+  locomotionState: 0
+  crouchSpeed: 1.5
+  walkSpeed: 2.5
+  runSpeed: 5.5
+  rotationSpeed: 200
+  gravity: -9.8
+  maxHeight: 1.5
+  fallMultiplier: 1.5
+  jumpCD: 0.15
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -842,5 +991,5 @@ SceneRoots:
   - {fileID: 912041497}
   - {fileID: 1018319123}
   - {fileID: 1451912974}
-  - {fileID: 3378414922384052700}
   - {fileID: 682120252}
+  - {fileID: 3378414922384052700}
