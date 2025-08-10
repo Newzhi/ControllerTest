@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using KinematicCharacterController;
 using System;
+using UnityEngine.InputSystem;
 
 namespace Test
 {
@@ -12,6 +13,9 @@ namespace Test
     public enum CharacterState
     {
         Default,    // 默认状态
+        Running,
+        Jumping,
+        Swimming,
     }
 
     /// <summary>
@@ -83,6 +87,7 @@ namespace Test
         public bool AllowJumpingWhenSliding = false;  // 是否允许在滑行时跳跃
         public float JumpUpSpeed = 10f;               // 跳跃上升速度
         public float JumpScalableForwardSpeed = 10f;  // 跳跃时前向速度缩放
+        public float jumpForwordWeight = 0.1f;
         public float JumpPreGroundingGraceTime = 0f;  // 跳跃前接地宽限时间
         public float JumpPostGroundingGraceTime = 0f; // 跳跃后接地宽限时间
         #endregion
@@ -194,10 +199,13 @@ namespace Test
         #endregion
 
         #region 输入处理系统
+
         /// <summary>
-        /// 每帧由ExamplePlayer调用，告诉角色其输入是什么
+        /// 每帧由制定的Player中间脚本调用，告诉角色其输入是什么，这里的Player相当于传递信息的中间人，封装也可以对于网络，我个人认为
         /// </summary>
         /// <param name="inputs">玩家角色输入</param>
+        
+          
         public void SetInputs(ref PlayerCharacterInputs inputs)
         {
             // 限制输入
@@ -439,7 +447,7 @@ namespace Test
 
                                 // 添加到返回速度并重置跳跃状态
                                 currentVelocity += (jumpDirection * JumpUpSpeed) - Vector3.Project(currentVelocity, Motor.CharacterUp);
-                                currentVelocity += (_moveInputVector * JumpScalableForwardSpeed);
+                                currentVelocity += (_moveInputVector * JumpScalableForwardSpeed * jumpForwordWeight);
                                 _jumpRequested = false;
                                 _jumpConsumed = true;
                                 _jumpedThisFrame = true;

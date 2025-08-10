@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using KinematicCharacterController;
 using KinematicCharacterController.Examples;
+using UnityEngine.InputSystem;
 
 namespace Test
 {
@@ -16,6 +17,8 @@ namespace Test
         private const string MouseScrollInput = "Mouse ScrollWheel";
         private const string HorizontalInput = "Horizontal";
         private const string VerticalInput = "Vertical";
+        
+        PlayerCharacterInputs characterInputs = new PlayerCharacterInputs();
 
         private void Start()
         {
@@ -50,6 +53,42 @@ namespace Test
 
             HandleCameraInput();
         }
+        
+        #region 改用新输入系统尝试
+
+        public void GetMoveInputX(InputAction.CallbackContext ctx)
+        {
+            characterInputs.MoveAxisRight = ctx.ReadValue<Vector2>().x;
+        }
+
+        public void GetMoveInputY(InputAction.CallbackContext ctx)
+        {
+            characterInputs.MoveAxisForward = ctx.ReadValue<Vector2>().y;
+        }
+
+        public void GetLookInput(InputAction.CallbackContext ctx)
+        {
+            
+        }
+
+        public void GetCrouchInput(InputAction.CallbackContext ctx)
+        {
+            
+        }
+
+        public void GetRunInput(InputAction.CallbackContext ctx)
+        {
+            
+        }
+
+        public void GetJumpInput(InputAction.CallbackContext ctx)
+        {
+            characterInputs.JumpDown =  ctx.ReadValueAsButton();
+        }
+        public void GetJumpConsumed(InputAction.CallbackContext ctx){}
+        public void GetJumpedThisFrame(InputAction.CallbackContext ctx){}
+            
+        #endregion
 
         private void HandleCameraInput()
         {
@@ -82,15 +121,17 @@ namespace Test
 
         private void HandleCharacterInput()
         {
-            PlayerCharacterInputs characterInputs = new PlayerCharacterInputs();
+            //PlayerCharacterInputs characterInputs = new PlayerCharacterInputs();
 
             // Build the CharacterInputs struct
-            characterInputs.MoveAxisForward = Input.GetAxisRaw(VerticalInput);
-            characterInputs.MoveAxisRight = Input.GetAxisRaw(HorizontalInput);
+            //characterInputs.MoveAxisForward = Input.GetAxisRaw(VerticalInput);
+            //characterInputs.MoveAxisRight = Input.GetAxisRaw(HorizontalInput);
             characterInputs.CameraRotation = CharacterCamera.Transform.rotation;
-            characterInputs.JumpDown = Input.GetKeyDown(KeyCode.Space);
+            //characterInputs.JumpDown = Input.GetKeyDown(KeyCode.Space);
             characterInputs.CrouchDown = Input.GetKeyDown(KeyCode.C);
             characterInputs.CrouchUp = Input.GetKeyUp(KeyCode.C);
+            
+            Debug.Log(characterInputs.MoveAxisRight);
 
             // Apply inputs to character
             Character.SetInputs(ref characterInputs);
