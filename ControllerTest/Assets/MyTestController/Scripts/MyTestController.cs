@@ -113,6 +113,7 @@ namespace MyNamespace
         private bool _jumpedThisFrame = false;                  // 本帧是否跳跃
         private float _timeSinceJumpRequested = Mathf.Infinity; // 距离跳跃请求的时间
         private float _timeSinceLastAbleToJump = 0f;            // 距离上次能跳跃的时间
+        private bool _isJumpingThisFrame = false;               // 本帧是否正在跳跃（用于避免速度叠加）
         #endregion
 
         #region 物理和碰撞状态
@@ -628,8 +629,8 @@ namespace MyNamespace
             // 空中移动
             else
             {
-                // 添加移动输入
-                if (_moveInputVector.sqrMagnitude > 0f)
+                // 修复：在跳跃时跳过空中移动速度计算，避免速度叠加
+                if (!_isJumpingThisFrame && _moveInputVector.sqrMagnitude > 0f)
                 {
                     Vector3 addedVelocity = _moveInputVector * AirAccelerationSpeed * deltaTime;
 
@@ -682,6 +683,7 @@ namespace MyNamespace
         {
             // 处理跳跃相关值
             _jumpedThisFrame = false;
+            _isJumpingThisFrame = false;  // 重置跳跃状态标志
             _timeSinceJumpRequested += deltaTime;
             
             if (_jumpRequested)
@@ -689,6 +691,9 @@ namespace MyNamespace
                 // 检查是否允许跳跃
                 if (!_jumpConsumed && ((AllowJumpingWhenSliding ? Motor.GroundingStatus.FoundAnyGround : Motor.GroundingStatus.IsStableOnGround) || _timeSinceLastAbleToJump <= JumpPostGroundingGraceTime))
                 {
+                    // 设置跳跃状态标志
+                    _isJumpingThisFrame = true;
+                    
                     // 计算跳跃方向
                     Vector3 jumpDirection = Motor.CharacterUp;
                     if (Motor.GroundingStatus.FoundAnyGround && !Motor.GroundingStatus.IsStableOnGround)
@@ -701,7 +706,13 @@ namespace MyNamespace
 
                     // 添加跳跃速度
                     currentVelocity += (jumpDirection * JumpUpSpeed) - Vector3.Project(currentVelocity, Motor.CharacterUp);
-                    currentVelocity += (_moveInputVector * JumpScalableForwardSpeed);
+                    
+                    // 修复：只在跳跃时添加一次前向速度，避免与空中移动速度叠加
+                    if (_moveInputVector.sqrMagnitude > 0f)
+                    {
+                        Vector3 jumpForwardVelocity = _moveInputVector * JumpScalableForwardSpeed;
+                        currentVelocity += jumpForwardVelocity;
+                    }
                     
                     _jumpRequested = false;
                     _jumpConsumed = true;
