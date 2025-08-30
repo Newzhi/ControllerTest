@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using KinematicCharacterController;
+using Animancer;
 using System;
 using UnityEngine.InputSystem;
 
@@ -12,7 +13,9 @@ namespace Test
     /// </summary>
     public enum CharacterState
     {
-        Default,    // 默认状态
+        Default,
+        Idle,
+        Walking,// 默认状态
         Running,
         Jumping,
         Swimming,
@@ -110,6 +113,7 @@ namespace Test
         #region 状态管理
         //[Header("角色状态")]
         public CharacterState CurrentCharacterState { get; private set; }  // 当前角色状态
+        public bool CanSetState = false;
         #endregion
 
         #region 私有变量
@@ -150,6 +154,12 @@ namespace Test
             // 将角色控制器分配给运动控制器
             Motor.CharacterController = this;
         }
+
+        private void Update()
+        {
+            //UpdateCharacterState();    //更新角色状态
+        }
+        
         #endregion
 
         #region 状态管理系统
@@ -195,6 +205,28 @@ namespace Test
                         break;
                     }
             }
+        }
+
+        /// <summary>
+        /// 状态更新方法 其中的CanSetState可以被设置，当为ture的时候 可以由外界设置状态
+        /// </summary>
+        public void UpdateCharacterState()
+        {
+            if (!CanSetState)
+            {
+                // 检查移动输入
+                float moveMagnitude = _moveInputVector.magnitude;
+        
+                if (Input.GetKey(KeyCode.W))
+                {
+                    TransitionToState(CharacterState.Idle);
+                }
+                else
+                {
+                    TransitionToState(CharacterState.Default);
+                }
+            }
+
         }
         #endregion
 

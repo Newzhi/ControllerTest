@@ -89,7 +89,10 @@ namespace Test
         public void GetJumpedThisFrame(InputAction.CallbackContext ctx){}
             
         #endregion
-
+        
+        #region 旧版输入系统
+        
+        
         private void HandleCameraInput()
         {
             // Create the look input vector for the camera
@@ -131,10 +134,13 @@ namespace Test
             characterInputs.CrouchDown = Input.GetKeyDown(KeyCode.C);
             characterInputs.CrouchUp = Input.GetKeyUp(KeyCode.C);
             
-            Debug.Log(characterInputs.MoveAxisRight);
+            //Debug.Log(characterInputs.MoveAxisRight);
 
             // Apply inputs to character
             Character.SetInputs(ref characterInputs);
         }
+        
+        #endregion
+
     }
 }
