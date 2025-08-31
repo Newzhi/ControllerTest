@@ -15,10 +15,12 @@ namespace Test
     {
         Default,
         Idle,
-        Walking,// 默认状态
+        Walking,
         Running,
         Jumping,
+        Falling,
         Swimming,
+        Crouching,
     }
 
     /// <summary>
@@ -41,6 +43,7 @@ namespace Test
         public bool JumpDown;            // 跳跃按下
         public bool CrouchDown;          // 蹲下按下
         public bool CrouchUp;            // 蹲下释放
+        public bool SprintDown;          // 冲刺按下
     }
 
     /// <summary>
@@ -63,6 +66,19 @@ namespace Test
     }
 
     /// <summary>
+    /// 动画配置类
+    /// </summary>
+    [System.Serializable]
+    public class AnimationConfig
+    {
+        public CharacterState State;
+        public ClipTransition Transition;
+        public float FadeDuration = 0.25f;
+        public float Speed = 1f;
+        public bool Loop = true;
+    }
+
+    /// <summary>
     /// 角色控制器主类 - 实现基于KinematicCharacterController的角色移动系统
     /// </summary>
     public class MyTestController2 : MonoBehaviour, ICharacterController
@@ -70,11 +86,13 @@ namespace Test
         #region 核心组件
         [Header("核心组件")]
         public KinematicCharacterMotor Motor;  // 运动控制器核心组件
+        public AnimancerComponent Animancer;
         #endregion
 
         #region 移动系统参数
         [Header("地面移动参数")]
         public float MaxStableMoveSpeed = 10f;        // 最大稳定移动速度
+        public float MaxRunningSpeed = 15f;           // 最大跑步速度
         public float StableMovementSharpness = 15f;   // 地面移动响应速度
         public float OrientationSharpness = 10f;      // 角色朝向响应速度
         public OrientationMethod OrientationMethod = OrientationMethod.TowardsCamera;  // 朝向方法选择
@@ -109,11 +127,18 @@ namespace Test
         public Transform CameraFollowPoint;           // 摄像机跟随点
         public float CrouchedCapsuleHeight = 1f;      // 蹲下时的胶囊体高度
         #endregion
+        
+        #region 动画系统
+        [Header("动画配置")] 
+        public AnimationConfig[] AnimationConfigs;
+        private Dictionary<CharacterState, ClipTransition> _AnimationCache;
+        private CharacterState _CurrentAnimationState = CharacterState.Idle;
+        #endregion
 
         #region 状态管理
-        //[Header("角色状态")]
-        public CharacterState CurrentCharacterState { get; private set; }  // 当前角色状态
+        [Header("角色状态")]
         public bool CanSetState = false;
+        public CharacterState CurrentCharacterState { get; private set; }  // 当前角色状态
         #endregion
 
         #region 私有变量
@@ -140,6 +165,9 @@ namespace Test
         // 蹲下系统状态
         private bool _shouldBeCrouching = false;  // 是否应该蹲下
         private bool _isCrouching = false;        // 当前是否蹲下
+
+        // 冲刺系统状态
+        private bool _isSprinting = false;        // 当前是否冲刺
         #endregion
 
         #region Unity生命周期
@@ -148,8 +176,11 @@ namespace Test
         /// </summary>
         private void Awake()
         {
+            // 初始化动画系统
+            InitializeAnimationSystem();
+
             // 处理初始状态
-            TransitionToState(CharacterState.Default);
+            TransitionToState(CharacterState.Idle);
 
             // 将角色控制器分配给运动控制器
             Motor.CharacterController = this;
@@ -157,9 +188,111 @@ namespace Test
 
         private void Update()
         {
-            //UpdateCharacterState();    //更新角色状态
+            UpdateCharacterState();    // 更新角色状态
+            UpdateAnimationState();    // 更新动画状态
         }
         
+        #endregion
+
+        #region 动画系统
+        /// <summary>
+        /// 初始化动画系统
+        /// </summary>
+        private void InitializeAnimationSystem()
+        {
+            if (Animancer == null)
+            {
+                Animancer = GetComponent<AnimancerComponent>();
+                if (Animancer == null)
+                {
+                    Debug.LogError("[MyTestController2] 未找到AnimancerComponent组件！");
+                    return;
+                }
+            }
+
+            // 初始化动画缓存
+            _AnimationCache = new Dictionary<CharacterState, ClipTransition>();
+            
+            // 缓存动画配置
+            if (AnimationConfigs != null)
+            {
+                foreach (var config in AnimationConfigs)
+                {
+                    if (config.Transition != null)
+                    {
+                        _AnimationCache[config.State] = config.Transition;
+                    }
+                }
+            }
+
+            // 播放初始动画
+            PlayAnimation(CharacterState.Idle);
+            
+            Debug.Log("[MyTestController2] 动画系统初始化完成");
+        }
+
+        /// <summary>
+        /// 更新动画状态
+        /// </summary>
+        private void UpdateAnimationState()
+        {
+            CharacterState targetAnimationState = DetermineTargetAnimationState();
+            
+            if (targetAnimationState != _CurrentAnimationState)
+            {
+                TransitionToAnimationState(targetAnimationState);
+            }
+        }
+
+        /// <summary>
+        /// 确定目标动画状态
+        /// </summary>
+        private CharacterState DetermineTargetAnimationState()
+        {
+            // 根据当前角色状态和物理状态确定动画
+            if (!Motor.GroundingStatus.IsStableOnGround)
+            {
+                if (Motor.Velocity.y > 0)
+                    return CharacterState.Jumping;
+                else
+                    return CharacterState.Falling;
+            }
+
+            if (_isCrouching)
+                return CharacterState.Crouching;
+
+            float moveMagnitude = _moveInputVector.magnitude;
+            if (moveMagnitude > 0.1f)
+            {
+                return _isSprinting ? CharacterState.Running : CharacterState.Walking;
+            }
+
+            return CharacterState.Idle;
+        }
+
+        /// <summary>
+        /// 转换到动画状态
+        /// </summary>
+        private void TransitionToAnimationState(CharacterState newState)
+        {
+            if (_AnimationCache.TryGetValue(newState, out var transition))
+            {
+                Animancer.Play(transition);
+                _CurrentAnimationState = newState;
+            }
+        }
+
+        /// <summary>
+        /// 播放指定动画
+        /// </summary>
+        private void PlayAnimation(CharacterState state)
+        {
+            if (_AnimationCache.TryGetValue(state, out var transition))
+            {
+                Animancer.Play(transition);
+                _CurrentAnimationState = state;
+            }
+        }
         #endregion
 
         #region 状态管理系统
@@ -184,10 +317,24 @@ namespace Test
         {
             switch (state)
             {
-                case CharacterState.Default:
-                    {
-                        break;
-                    }
+                case CharacterState.Idle:
+                    Debug.Log("进入空闲状态");
+                    break;
+                case CharacterState.Walking:
+                    Debug.Log("进入行走状态");
+                    break;
+                case CharacterState.Running:
+                    Debug.Log("进入跑步状态");
+                    break;
+                case CharacterState.Jumping:
+                    Debug.Log("进入跳跃状态");
+                    break;
+                case CharacterState.Falling:
+                    Debug.Log("进入下落状态");
+                    break;
+                case CharacterState.Crouching:
+                    Debug.Log("进入蹲下状态");
+                    break;
             }
         }
 
@@ -200,44 +347,68 @@ namespace Test
         {
             switch (state)
             {
-                case CharacterState.Default:
-                    {
-                        break;
-                    }
+                case CharacterState.Idle:
+                    Debug.Log("退出空闲状态");
+                    break;
+                case CharacterState.Walking:
+                    Debug.Log("退出行走状态");
+                    break;
+                case CharacterState.Running:
+                    Debug.Log("退出跑步状态");
+                    break;
+                case CharacterState.Jumping:
+                    Debug.Log("退出跳跃状态");
+                    break;
+                case CharacterState.Falling:
+                    Debug.Log("退出下落状态");
+                    break;
+                case CharacterState.Crouching:
+                    Debug.Log("退出蹲下状态");
+                    break;
             }
         }
 
         /// <summary>
-        /// 状态更新方法 其中的CanSetState可以被设置，当为ture的时候 可以由外界设置状态
+        /// 状态更新方法
         /// </summary>
         public void UpdateCharacterState()
         {
             if (!CanSetState)
             {
-                // 检查移动输入
-                float moveMagnitude = _moveInputVector.magnitude;
-        
-                if (Input.GetKey(KeyCode.W))
+                // 根据物理状态和输入自动更新状态
+                if (!Motor.GroundingStatus.IsStableOnGround)
                 {
-                    TransitionToState(CharacterState.Idle);
+                    if (Motor.Velocity.y > 0)
+                        TransitionToState(CharacterState.Jumping);
+                    else
+                        TransitionToState(CharacterState.Falling);
+                }
+                else if (_isCrouching)
+                {
+                    TransitionToState(CharacterState.Crouching);
                 }
                 else
                 {
-                    TransitionToState(CharacterState.Default);
+                    float moveMagnitude = _moveInputVector.magnitude;
+                    if (moveMagnitude > 0.1f)
+                    {
+                        TransitionToState(_isSprinting ? CharacterState.Running : CharacterState.Walking);
+                    }
+                    else
+                    {
+                        TransitionToState(CharacterState.Idle);
+                    }
                 }
             }
-
         }
         #endregion
 
         #region 输入处理系统
 
         /// <summary>
-        /// 每帧由制定的Player中间脚本调用，告诉角色其输入是什么，这里的Player相当于传递信息的中间人，封装也可以对于网络，我个人认为
+        /// 每帧由制定的Player中间脚本调用，告诉角色其输入是什么
         /// </summary>
         /// <param name="inputs">玩家角色输入</param>
-        
-          
         public void SetInputs(ref PlayerCharacterInputs inputs)
         {
             // 限制输入
@@ -253,7 +424,10 @@ namespace Test
 
             switch (CurrentCharacterState)
             {
-                case CharacterState.Default:
+                case CharacterState.Idle:
+                case CharacterState.Walking:
+                case CharacterState.Running:
+                case CharacterState.Crouching:
                     {
                         // 移动和朝向输入
                         _moveInputVector = cameraPlanarRotation * moveInputVector;
@@ -284,7 +458,7 @@ namespace Test
                             {
                                 _isCrouching = true;
                                 Motor.SetCapsuleDimensions(0.5f, CrouchedCapsuleHeight, CrouchedCapsuleHeight * 0.5f);
-                                MeshRoot.localScale = new Vector3(1f, 0.5f, 1f);
+                                //MeshRoot.localScale = new Vector3(1f, 0.5f, 1f);
                             }
                         }
                         else if (inputs.CrouchUp)
@@ -292,6 +466,27 @@ namespace Test
                             _shouldBeCrouching = false;
                         }
 
+                        // 冲刺输入
+                        _isSprinting = inputs.SprintDown && _moveInputVector.magnitude > 0.1f && !_isCrouching;
+
+                        break;
+                    }
+                case CharacterState.Jumping:
+                case CharacterState.Falling:
+                    {
+                        // 空中移动和朝向输入
+                        _moveInputVector = cameraPlanarRotation * moveInputVector;
+                        
+                        // 更新朝向输入，允许空中控制旋转
+                        switch (OrientationMethod)
+                        {
+                            case OrientationMethod.TowardsCamera:
+                                _lookInputVector = cameraPlanarDirection;
+                                break;
+                            case OrientationMethod.TowardsMovement:
+                                _lookInputVector = _moveInputVector.normalized;
+                                break;
+                        }
                         break;
                     }
             }
@@ -332,54 +527,48 @@ namespace Test
         /// <param name="deltaTime">时间增量</param>
         public void UpdateRotation(ref Quaternion currentRotation, float deltaTime)
         {
-            switch (CurrentCharacterState)
+            // 处理朝向输入（地面和空中都支持）
+            if (_lookInputVector.sqrMagnitude > 0f && OrientationSharpness > 0f)
             {
-                case CharacterState.Default:
-                    {
-                        if (_lookInputVector.sqrMagnitude > 0f && OrientationSharpness > 0f)
-                        {
-                            // 平滑地从当前朝向插值到目标朝向
-                            Vector3 smoothedLookInputDirection = Vector3.Slerp(Motor.CharacterForward, _lookInputVector, 1 - Mathf.Exp(-OrientationSharpness * deltaTime)).normalized;
+                // 平滑地从当前朝向插值到目标朝向
+                Vector3 smoothedLookInputDirection = Vector3.Slerp(Motor.CharacterForward, _lookInputVector, 1 - Mathf.Exp(-OrientationSharpness * deltaTime)).normalized;
 
-                            // 设置当前旋转（将被KinematicCharacterMotor使用）
-                            currentRotation = Quaternion.LookRotation(smoothedLookInputDirection, Motor.CharacterUp);
-                        }
+                // 设置当前旋转（将被KinematicCharacterMotor使用）
+                currentRotation = Quaternion.LookRotation(smoothedLookInputDirection, Motor.CharacterUp);
+            }
 
-                        Vector3 currentUp = (currentRotation * Vector3.up);
-                        if (BonusOrientationMethod == BonusOrientationMethod.TowardsGravity)
-                        {
-                            // 从当前向上方向旋转到重力反方向
-                            Vector3 smoothedGravityDir = Vector3.Slerp(currentUp, -Gravity.normalized, 1 - Mathf.Exp(-BonusOrientationSharpness * deltaTime));
-                            currentRotation = Quaternion.FromToRotation(currentUp, smoothedGravityDir) * currentRotation;
-                        }
-                        else if (BonusOrientationMethod == BonusOrientationMethod.TowardsGroundSlopeAndGravity)
-                        {
-                            if (Motor.GroundingStatus.IsStableOnGround)
-                            {
-                                Vector3 initialCharacterBottomHemiCenter = Motor.TransientPosition + (currentUp * Motor.Capsule.radius);
+            // 处理额外朝向方法
+            Vector3 currentUp = (currentRotation * Vector3.up);
+            if (BonusOrientationMethod == BonusOrientationMethod.TowardsGravity)
+            {
+                // 从当前向上方向旋转到重力反方向
+                Vector3 smoothedGravityDir = Vector3.Slerp(currentUp, -Gravity.normalized, 1 - Mathf.Exp(-BonusOrientationSharpness * deltaTime));
+                currentRotation = Quaternion.FromToRotation(currentUp, smoothedGravityDir) * currentRotation;
+            }
+            else if (BonusOrientationMethod == BonusOrientationMethod.TowardsGroundSlopeAndGravity)
+            {
+                if (Motor.GroundingStatus.IsStableOnGround)
+                {
+                    Vector3 initialCharacterBottomHemiCenter = Motor.TransientPosition + (currentUp * Motor.Capsule.radius);
 
-                                Vector3 smoothedGroundNormal = Vector3.Slerp(Motor.CharacterUp, Motor.GroundingStatus.GroundNormal, 1 - Mathf.Exp(-BonusOrientationSharpness * deltaTime));
-                                currentRotation = Quaternion.FromToRotation(currentUp, smoothedGroundNormal) * currentRotation;
+                    Vector3 smoothedGroundNormal = Vector3.Slerp(Motor.CharacterUp, Motor.GroundingStatus.GroundNormal, 1 - Mathf.Exp(-BonusOrientationSharpness * deltaTime));
+                    currentRotation = Quaternion.FromToRotation(currentUp, smoothedGroundNormal) * currentRotation;
 
-                                // 移动位置以创建围绕底部半球中心的旋转，而不是围绕轴心
-                                Motor.SetTransientPosition(initialCharacterBottomHemiCenter + (currentRotation * Vector3.down * Motor.Capsule.radius));
-                            }
-                            else
-                            {
-                                Vector3 smoothedGravityDir = Vector3.Slerp(currentUp, -Gravity.normalized, 1 - Mathf.Exp(-BonusOrientationSharpness * deltaTime));
-                                currentRotation = Quaternion.FromToRotation(currentUp, smoothedGravityDir) * currentRotation;
-                            }
-                        }
-                        else
-                        {
-                            Vector3 smoothedGravityDir = Vector3.Slerp(currentUp, Vector3.up, 1 - Mathf.Exp(-BonusOrientationSharpness * deltaTime));
-                            currentRotation = Quaternion.FromToRotation(currentUp, smoothedGravityDir) * currentRotation;
-                        }
-                        break;
-                    }
+                    // 移动位置以创建围绕底部半球中心的旋转，而不是围绕轴心
+                    Motor.SetTransientPosition(initialCharacterBottomHemiCenter + (currentRotation * Vector3.down * Motor.Capsule.radius));
+                }
+                else
+                {
+                    Vector3 smoothedGravityDir = Vector3.Slerp(currentUp, -Gravity.normalized, 1 - Mathf.Exp(-BonusOrientationSharpness * deltaTime));
+                    currentRotation = Quaternion.FromToRotation(currentUp, smoothedGravityDir) * currentRotation;
+                }
+            }
+            else
+            {
+                Vector3 smoothedGravityDir = Vector3.Slerp(currentUp, Vector3.up, 1 - Mathf.Exp(-BonusOrientationSharpness * deltaTime));
+                currentRotation = Quaternion.FromToRotation(currentUp, smoothedGravityDir) * currentRotation;
             }
         }
-        #endregion
 
         /// <summary>
         /// （由KinematicCharacterMotor在其更新周期中调用）
@@ -389,111 +578,108 @@ namespace Test
         /// <param name="deltaTime">时间增量</param>
         public void UpdateVelocity(ref Vector3 currentVelocity, float deltaTime)
         {
-            switch (CurrentCharacterState)
+            // 地面移动
+            if (Motor.GroundingStatus.IsStableOnGround)
             {
-                case CharacterState.Default:
+                float currentVelocityMagnitude = currentVelocity.magnitude;
+
+                Vector3 effectiveGroundNormal = Motor.GroundingStatus.GroundNormal;
+
+                // 在斜坡上重新定向速度
+                currentVelocity = Motor.GetDirectionTangentToSurface(currentVelocity, effectiveGroundNormal) * currentVelocityMagnitude;
+
+                // 计算目标速度
+                Vector3 inputRight = Vector3.Cross(_moveInputVector, Motor.CharacterUp);
+                Vector3 reorientedInput = Vector3.Cross(effectiveGroundNormal, inputRight).normalized * _moveInputVector.magnitude;
+                
+                // 根据状态选择最大速度
+                float maxSpeed = _isSprinting ? MaxRunningSpeed : MaxStableMoveSpeed;
+                if (_isCrouching) maxSpeed *= 0.5f; // 蹲下时速度减半
+                
+                Vector3 targetMovementVelocity = reorientedInput * maxSpeed;
+
+                // 平滑移动速度
+                currentVelocity = Vector3.Lerp(currentVelocity, targetMovementVelocity, 1f - Mathf.Exp(-StableMovementSharpness * deltaTime));
+            }
+            // 空中移动
+            else
+            {
+                // 添加移动输入
+                if (_moveInputVector.sqrMagnitude > 0f)
+                {
+                    Vector3 addedVelocity = _moveInputVector * AirAccelerationSpeed * deltaTime;
+
+                    Vector3 currentVelocityOnInputsPlane = Vector3.ProjectOnPlane(currentVelocity, Motor.CharacterUp);
+
+                    // 限制来自输入的空中速度
+                    if (currentVelocityOnInputsPlane.magnitude < MaxAirMoveSpeed)
                     {
-                        // 地面移动
-                        if (Motor.GroundingStatus.IsStableOnGround)
-                        {
-                            float currentVelocityMagnitude = currentVelocity.magnitude;
-
-                            Vector3 effectiveGroundNormal = Motor.GroundingStatus.GroundNormal;
-
-                            // 在斜坡上重新定向速度
-                            currentVelocity = Motor.GetDirectionTangentToSurface(currentVelocity, effectiveGroundNormal) * currentVelocityMagnitude;
-
-                            // 计算目标速度
-                            Vector3 inputRight = Vector3.Cross(_moveInputVector, Motor.CharacterUp);
-                            Vector3 reorientedInput = Vector3.Cross(effectiveGroundNormal, inputRight).normalized * _moveInputVector.magnitude;
-                            Vector3 targetMovementVelocity = reorientedInput * MaxStableMoveSpeed;
-
-                            // 平滑移动速度
-                            currentVelocity = Vector3.Lerp(currentVelocity, targetMovementVelocity, 1f - Mathf.Exp(-StableMovementSharpness * deltaTime));
-                        }
-                        // 空中移动
-                        else
-                        {
-                            // 添加移动输入
-                            if (_moveInputVector.sqrMagnitude > 0f)
-                            {
-                                Vector3 addedVelocity = _moveInputVector * AirAccelerationSpeed * deltaTime;
-
-                                Vector3 currentVelocityOnInputsPlane = Vector3.ProjectOnPlane(currentVelocity, Motor.CharacterUp);
-
-                                // 限制来自输入的空中速度
-                                if (currentVelocityOnInputsPlane.magnitude < MaxAirMoveSpeed)
-                                {
-                                    // 限制添加的速度，使总速度不超过输入平面上的最大速度
-                                    Vector3 newTotal = Vector3.ClampMagnitude(currentVelocityOnInputsPlane + addedVelocity, MaxAirMoveSpeed);
-                                    addedVelocity = newTotal - currentVelocityOnInputsPlane;
-                                }
-                                else
-                                {
-                                    // 确保添加的速度不会与已经超速的速度同向
-                                    if (Vector3.Dot(currentVelocityOnInputsPlane, addedVelocity) > 0f)
-                                    {
-                                        addedVelocity = Vector3.ProjectOnPlane(addedVelocity, currentVelocityOnInputsPlane.normalized);
-                                    }
-                                }
-
-                                // 防止空中攀爬斜坡墙壁
-                                if (Motor.GroundingStatus.FoundAnyGround)
-                                {
-                                    if (Vector3.Dot(currentVelocity + addedVelocity, addedVelocity) > 0f)
-                                    {
-                                        Vector3 perpenticularObstructionNormal = Vector3.Cross(Vector3.Cross(Motor.CharacterUp, Motor.GroundingStatus.GroundNormal), Motor.CharacterUp).normalized;
-                                        addedVelocity = Vector3.ProjectOnPlane(addedVelocity, perpenticularObstructionNormal);
-                                    }
-                                }
-
-                                // 应用添加的速度
-                                currentVelocity += addedVelocity;
-                            }
-
-                            // 重力
-                            currentVelocity += Gravity * deltaTime;
-
-                            // 阻力
-                            currentVelocity *= (1f / (1f + (Drag * deltaTime)));
-                        }
-
-                        // 处理跳跃
-                        _jumpedThisFrame = false;
-                        _timeSinceJumpRequested += deltaTime;
-                        if (_jumpRequested)
-                        {
-                            // 检查我们是否真的被允许跳跃
-                            if (!_jumpConsumed && ((AllowJumpingWhenSliding ? Motor.GroundingStatus.FoundAnyGround : Motor.GroundingStatus.IsStableOnGround) || _timeSinceLastAbleToJump <= JumpPostGroundingGraceTime))
-                            {
-                                // 在离开地面之前计算跳跃方向
-                                Vector3 jumpDirection = Motor.CharacterUp;
-                                if (Motor.GroundingStatus.FoundAnyGround && !Motor.GroundingStatus.IsStableOnGround)
-                                {
-                                    jumpDirection = Motor.GroundingStatus.GroundNormal;
-                                }
-
-                                // 使角色在下一次更新时跳过地面探测/吸附。
-                                // 如果这行代码不存在，角色在尝试跳跃时会保持吸附在地面上。尝试注释掉这行代码看看效果。
-                                Motor.ForceUnground();
-
-                                // 添加到返回速度并重置跳跃状态
-                                currentVelocity += (jumpDirection * JumpUpSpeed) - Vector3.Project(currentVelocity, Motor.CharacterUp);
-                                currentVelocity += (_moveInputVector * JumpScalableForwardSpeed * jumpForwordWeight);
-                                _jumpRequested = false;
-                                _jumpConsumed = true;
-                                _jumpedThisFrame = true;
-                            }
-                        }
-
-                        // 考虑附加速度
-                        if (_internalVelocityAdd.sqrMagnitude > 0f)
-                        {
-                            currentVelocity += _internalVelocityAdd;
-                            _internalVelocityAdd = Vector3.zero;
-                        }
-                        break;
+                        // 限制添加的速度，使总速度不超过输入平面上的最大速度
+                        Vector3 newTotal = Vector3.ClampMagnitude(currentVelocityOnInputsPlane + addedVelocity, MaxAirMoveSpeed);
+                        addedVelocity = newTotal - currentVelocityOnInputsPlane;
                     }
+                    else
+                    {
+                        // 确保添加的速度不会与已经超速的速度同向
+                        if (Vector3.Dot(currentVelocityOnInputsPlane, addedVelocity) > 0f)
+                        {
+                            addedVelocity = Vector3.ProjectOnPlane(addedVelocity, currentVelocityOnInputsPlane.normalized);
+                        }
+                    }
+
+                    // 防止空中攀爬斜坡墙壁
+                    if (Motor.GroundingStatus.FoundAnyGround)
+                    {
+                        if (Vector3.Dot(currentVelocity + addedVelocity, addedVelocity) > 0f)
+                        {
+                            Vector3 perpenticularObstructionNormal = Vector3.Cross(Vector3.Cross(Motor.CharacterUp, Motor.GroundingStatus.GroundNormal), Motor.CharacterUp).normalized;
+                            addedVelocity = Vector3.ProjectOnPlane(addedVelocity, perpenticularObstructionNormal);
+                        }
+                    }
+
+                    // 应用添加的速度
+                    currentVelocity += addedVelocity;
+                }
+
+                // 重力
+                currentVelocity += Gravity * deltaTime;
+
+                // 阻力
+                currentVelocity *= (1f / (1f + (Drag * deltaTime)));
+            }
+
+            // 处理跳跃
+            _jumpedThisFrame = false;
+            _timeSinceJumpRequested += deltaTime;
+            if (_jumpRequested)
+            {
+                // 检查我们是否真的被允许跳跃
+                if (!_jumpConsumed && ((AllowJumpingWhenSliding ? Motor.GroundingStatus.FoundAnyGround : Motor.GroundingStatus.IsStableOnGround) || _timeSinceLastAbleToJump <= JumpPostGroundingGraceTime))
+                {
+                    // 在离开地面之前计算跳跃方向
+                    Vector3 jumpDirection = Motor.CharacterUp;
+                    if (Motor.GroundingStatus.FoundAnyGround && !Motor.GroundingStatus.IsStableOnGround)
+                    {
+                        jumpDirection = Motor.GroundingStatus.GroundNormal;
+                    }
+
+                    // 使角色在下一次更新时跳过地面探测/吸附。
+                    Motor.ForceUnground();
+
+                    // 添加到返回速度并重置跳跃状态
+                    currentVelocity += (jumpDirection * JumpUpSpeed) - Vector3.Project(currentVelocity, Motor.CharacterUp);
+                    currentVelocity += (_moveInputVector * JumpScalableForwardSpeed * jumpForwordWeight);
+                    _jumpRequested = false;
+                    _jumpConsumed = true;
+                    _jumpedThisFrame = true;
+                }
+            }
+
+            // 考虑附加速度
+            if (_internalVelocityAdd.sqrMagnitude > 0f)
+            {
+                currentVelocity += _internalVelocityAdd;
+                _internalVelocityAdd = Vector3.zero;
             }
         }
 
@@ -504,61 +690,55 @@ namespace Test
         /// <param name="deltaTime">时间增量</param>
         public void AfterCharacterUpdate(float deltaTime)
         {
-            switch (CurrentCharacterState)
+            // 处理跳跃相关值
             {
-                case CharacterState.Default:
+                // 处理跳跃前接地宽限时间
+                if (_jumpRequested && _timeSinceJumpRequested > JumpPreGroundingGraceTime)
+                {
+                    _jumpRequested = false;
+                }
+
+                if (AllowJumpingWhenSliding ? Motor.GroundingStatus.FoundAnyGround : Motor.GroundingStatus.IsStableOnGround)
+                {
+                    // 如果我们在地面上，重置跳跃值
+                    if (!_jumpedThisFrame)
                     {
-                        // 处理跳跃相关值
-                        {
-                            // 处理跳跃前接地宽限时间
-                            if (_jumpRequested && _timeSinceJumpRequested > JumpPreGroundingGraceTime)
-                            {
-                                _jumpRequested = false;
-                            }
-
-                            if (AllowJumpingWhenSliding ? Motor.GroundingStatus.FoundAnyGround : Motor.GroundingStatus.IsStableOnGround)
-                            {
-                                // 如果我们在地面上，重置跳跃值
-                                if (!_jumpedThisFrame)
-                                {
-                                    _jumpConsumed = false;
-                                }
-                                _timeSinceLastAbleToJump = 0f;
-                            }
-                            else
-                            {
-                                // 跟踪距离上次能够跳跃的时间（用于宽限时间）
-                                _timeSinceLastAbleToJump += deltaTime;
-                            }
-                        }
-
-                        // 处理站起
-                        if (_isCrouching && !_shouldBeCrouching)
-                        {
-                            // 对角色站立高度进行重叠测试，看是否有障碍物
-                            Motor.SetCapsuleDimensions(0.5f, 2f, 1f);
-                            if (Motor.CharacterOverlap(
-                                Motor.TransientPosition,
-                                Motor.TransientRotation,
-                                _probedColliders,
-                                Motor.CollidableLayers,
-                                QueryTriggerInteraction.Ignore) > 0)
-                            {
-                                // 如果有障碍物，保持蹲下尺寸
-                                Motor.SetCapsuleDimensions(0.5f, CrouchedCapsuleHeight, CrouchedCapsuleHeight * 0.5f);
-                            }
-                            else
-                            {
-                                // 如果没有障碍物，站起
-                                MeshRoot.localScale = new Vector3(1f, 1f, 1f);
-                                _isCrouching = false;
-                            }
-                        }
-                        break;
+                        _jumpConsumed = false;
                     }
+                    _timeSinceLastAbleToJump = 0f;
+                }
+                else
+                {
+                    // 跟踪距离上次能够跳跃的时间（用于宽限时间）
+                    _timeSinceLastAbleToJump += deltaTime;
+                }
+            }
+
+            // 处理站起
+            if (_isCrouching && !_shouldBeCrouching)
+            {
+                // 对角色站立高度进行重叠测试，看是否有障碍物
+                Motor.SetCapsuleDimensions(0.5f, 2f, 1f);
+                if (Motor.CharacterOverlap(
+                    Motor.TransientPosition,
+                    Motor.TransientRotation,
+                    _probedColliders,
+                    Motor.CollidableLayers,
+                    QueryTriggerInteraction.Ignore) > 0)
+                {
+                    // 如果有障碍物，保持蹲下尺寸
+                    Motor.SetCapsuleDimensions(0.5f, CrouchedCapsuleHeight, CrouchedCapsuleHeight * 0.5f);
+                }
+                else
+                {
+                    // 如果没有障碍物，站起
+                    //MeshRoot.localScale = new Vector3(1f, 1f, 1f);
+                    _isCrouching = false;
+                }
             }
         }
-
+        #endregion
+        
         #region 碰撞和物理系统
         /// <summary>
         /// 接地后更新 - 处理着陆和离开地面
@@ -625,14 +805,7 @@ namespace Test
         /// <param name="velocity">要添加的速度</param>
         public void AddVelocity(Vector3 velocity)
         {
-            switch (CurrentCharacterState)
-            {
-                case CharacterState.Default:
-                    {
-                        _internalVelocityAdd += velocity;
-                        break;
-                    }
-            }
+            _internalVelocityAdd += velocity;
         }
 
         /// <summary>
@@ -653,6 +826,7 @@ namespace Test
         /// </summary>
         protected void OnLanded()
         {
+            Debug.Log("角色着陆");
         }
 
         /// <summary>
@@ -660,6 +834,7 @@ namespace Test
         /// </summary>
         protected void OnLeaveStableGround()
         {
+            Debug.Log("角色离开地面");
         }
 
         /// <summary>

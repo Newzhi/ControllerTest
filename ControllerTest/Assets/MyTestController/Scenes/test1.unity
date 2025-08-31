@@ -133,10 +133,9 @@ GameObject:
   - component: {fileID: 64120486}
   - component: {fileID: 64120488}
   - component: {fileID: 64120487}
+  - component: {fileID: 64120495}
   - component: {fileID: 64120491}
   - component: {fileID: 64120493}
-  - component: {fileID: 64120495}
-  - component: {fileID: 64120494}
   m_Layer: 0
   m_Name: Character
   m_TagString: Untagged
@@ -174,9 +173,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Capsule: {fileID: 64120488}
-  CapsuleRadius: 0.5
-  CapsuleHeight: 2
-  CapsuleYOffset: 0.95
+  CapsuleRadius: 0.2
+  CapsuleHeight: 1.8
+  CapsuleYOffset: 0.84
   CapsulePhysicsMaterial: {fileID: 0}
   GroundDetectionExtraDistance: 0
   MaxStableSlopeAngle: 60
@@ -187,9 +186,9 @@ MonoBehaviour:
   StepHandling: 1
   MaxStepHeight: 0.5
   AllowSteppingWithoutStableGrounding: 0
-  MinRequiredStepDepth: 0.1
+  MinRequiredStepDepth: 0
   LedgeAndDenivelationHandling: 1
-  MaxStableDistanceFromLedge: 0.5
+  MaxStableDistanceFromLedge: 0
   MaxVelocityForLedgeSnap: 0
   MaxStableDenivelationAngle: 180
   InteractiveRigidbodyHandling: 1
@@ -222,10 +221,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
+  m_Radius: 0.2
+  m_Height: 1.8
   m_Direction: 1
-  m_Center: {x: 0, y: 0.95, z: 0}
+  m_Center: {x: 0, y: 0.84, z: 0}
 --- !u!54 &64120491
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -266,16 +265,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Motor: {fileID: 64120487}
-  MaxStableMoveSpeed: 10
+  Animancer: {fileID: 64120495}
+  MaxStableMoveSpeed: 3
+  MaxRunningSpeed: 15
   StableMovementSharpness: 15
   OrientationSharpness: 10
   OrientationMethod: 1
-  MaxAirMoveSpeed: 15
+  MaxAirMoveSpeed: 3
   AirAccelerationSpeed: 15
   Drag: 0.1
   AllowJumpingWhenSliding: 1
-  JumpUpSpeed: 10
-  JumpScalableForwardSpeed: 10
+  JumpUpSpeed: 8
+  JumpScalableForwardSpeed: 8
   jumpForwordWeight: 0.1
   JumpPreGroundingGraceTime: 0.1
   JumpPostGroundingGraceTime: 0.1
@@ -286,46 +287,34 @@ MonoBehaviour:
   MeshRoot: {fileID: 83332964}
   CameraFollowPoint: {fileID: 380746620}
   CrouchedCapsuleHeight: 1
---- !u!114 &64120494
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 64120485}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 82903a25cd1771f4e93a1cb4e93df364, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _Animancer: {fileID: 64120495}
-  _Idle:
-    _FadeDuration: 0.25
-    _Speed: 1
-    _Events:
-      _NormalizedTimes: []
-      _Callbacks: []
-      _Names: []
-    _Clip: {fileID: 7400000, guid: c2ecee9424461bf4e864486b30ec0e9e, type: 2}
-    _NormalizedStartTime: NaN
-  _Move:
-    _FadeDuration: 0.25
-    _Speed: 1
-    _Events:
-      _NormalizedTimes: []
-      _Callbacks: []
-      _Names: []
-    _Clip: {fileID: 7400000, guid: b1a5e04ae51004842aba06704a6c2903, type: 3}
-    _NormalizedStartTime: NaN
-  _Action:
-    _FadeDuration: 0.25
-    _Speed: 1
-    _Events:
-      _NormalizedTimes: []
-      _Callbacks: []
-      _Names: []
-    _Clip: {fileID: 7400000, guid: 49890a51e9107884da7e187406266836, type: 2}
-    _NormalizedStartTime: NaN
+  AnimationConfigs:
+  - State: 2
+    Transition:
+      _FadeDuration: 0.25
+      _Speed: 1
+      _Events:
+        _NormalizedTimes: []
+        _Callbacks: []
+        _Names: []
+      _Clip: {fileID: 7400000, guid: fd6e0d48a65905843a5f784b7acb18f0, type: 2}
+      _NormalizedStartTime: NaN
+    FadeDuration: 0
+    Speed: 0
+    Loop: 0
+  - State: 1
+    Transition:
+      _FadeDuration: 0.25
+      _Speed: 1
+      _Events:
+        _NormalizedTimes: []
+        _Callbacks: []
+        _Names: []
+      _Clip: {fileID: 7400000, guid: c2ecee9424461bf4e864486b30ec0e9e, type: 2}
+      _NormalizedStartTime: NaN
+    FadeDuration: 0
+    Speed: 0
+    Loop: 0
+  CanSetState: 0
   references:
     version: 2
     RefIds: []
@@ -387,6 +376,10 @@ PrefabInstance:
     - target: {fileID: 1937979026721672, guid: c75e91cf060bbf04e89204fa400606df, type: 3}
       propertyPath: m_Name
       value: ExampleCamera
+      objectReference: {fileID: 0}
+    - target: {fileID: 1937979026721672, guid: c75e91cf060bbf04e89204fa400606df, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4353896453404184, guid: c75e91cf060bbf04e89204fa400606df, type: 3}
       propertyPath: m_LocalPosition.x
@@ -557,6 +550,12 @@ PrefabInstance:
       propertyPath: m_PresetInfoIsWorld
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 9190002485676572815, guid: bc7d2e26c80b72f42a6ee074b8678b92,
+        type: 3}
+      propertyPath: m_Material
+      value: 
+      objectReference: {fileID: 13400000, guid: ceb114dcabcbc6c4fb99b1845b400293,
+        type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -589,14 +588,14 @@ RectTransform:
   m_GameObject: {fileID: 654537160}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 2.27, y: 2.27, z: 2.27}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1352573775}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -516, y: 315}
+  m_AnchoredPosition: {x: -746, y: 465}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &654537162
@@ -1083,14 +1082,14 @@ RectTransform:
   m_GameObject: {fileID: 1486705993}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 2.27, y: 2.27, z: 2.27}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1352573775}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -515, y: 281}
+  m_AnchoredPosition: {x: -745, y: 431}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1486705995
