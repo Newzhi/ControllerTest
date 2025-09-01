@@ -19,11 +19,11 @@ public class MainPlayerController : MonoBehaviour
         Midair
     };
     [HideInInspector]
-    public PlayerPosture playerPosture =PlayerPosture.Stand;
+    public PlayerPosture playerPosture = PlayerPosture.Stand;
 
     private float crouchThreshold = 0f;
     private float standThreshold = 1f;
-    private float midairThreshold = 2f;
+    private float midairThreshold = 2.1f;
 
    // [HideInInspector]
     public enum LocomotionState
@@ -84,7 +84,7 @@ public class MainPlayerController : MonoBehaviour
         postureHash = Animator.StringToHash("玩家姿态");
         moveSpeedHash = Animator.StringToHash("移动速度");
         turnSpeedHash = Animator.StringToHash("转弯速度");
-        //verticalValHash = Animator.StringToHash("垂直速度");
+        verticalValHash = Animator.StringToHash("垂直速度");
     }
 
     
@@ -147,12 +147,11 @@ public class MainPlayerController : MonoBehaviour
     
     void SwitchPlayerState()
     {
-        /*
-        if (characterController.isGrounded)
+        
+        if (!characterController.isGrounded)
         {
             playerPosture = PlayerPosture.Midair;
         } 
-        */
         if (isCrouch)
         {
             playerPosture = PlayerPosture.Crouch;
@@ -180,7 +179,7 @@ public class MainPlayerController : MonoBehaviour
     {
         if (characterController.isGrounded)
         {
-            VerticalVelocity = -1f;
+            VerticalVelocity = gravity * Time.deltaTime;
             //Debug.Log("在地上"+VerticalVelocity);
             return;
         }
@@ -238,14 +237,14 @@ public class MainPlayerController : MonoBehaviour
                     break;
             }
         }
-/*
+
         else if (playerPosture == PlayerPosture.Midair)
         {
             animator.SetFloat(postureHash,midairThreshold,0.1f, Time.deltaTime);
             animator.SetFloat(verticalValHash,VerticalVelocity,0.1f, Time.deltaTime);
         }
-*/        
-        if (true)
+       
+        if (true) //这里可以变换普通状态和战斗状态
         {
             float rad = Mathf.Atan2(playerMovement.x, playerMovement.z);
             animator.SetFloat(turnSpeedHash,rad,0.1f, Time.deltaTime);
