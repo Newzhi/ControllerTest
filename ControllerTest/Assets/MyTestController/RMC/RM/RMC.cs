@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Animancer.Samples.FineControl;
+using Unity.Mathematics.Geometry;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -68,10 +69,12 @@ namespace RMController
         
         [Header("跳跃相关")]
         public float jumpVelocity = 5f;
+        public float maxHeight = 1f;
         public float fallMultiplier = 1.5f;
         
         [Header("碰撞以及环境检测处理")]
         public Collider[] colliders;
+        //地面检测部分
         private bool IsGrounded = false;
         private float groundCheckOffset = 0.1f;
 
@@ -266,22 +269,21 @@ namespace RMController
         //地面检测
         void CheckGround()
         {
-            // 1. 计算角色控制器中点
-            Vector3 centerPoint = playerTransform.position;
+            Vector3 sphereStart = playerTransform.position + (Vector3.up * groundCheckOffset); 
             
-            // 2. 计算角色控制器底部位置（中点向下高度一半）
-            float halfHeight = characterController.height / 2f;
-            Vector3 bottomPoint = centerPoint + Vector3.down * halfHeight;
+            float detectionDistance = groundCheckOffset - characterController.radius * 2 * characterController.skinWidth; // 15厘米
             
-            // 3. 计算检测球位置（使用类中定义的groundCheckOffset）
-            Vector3 spherePosition = bottomPoint + Vector3.down * groundCheckOffset;
+            float sphereRadius = characterController.radius;
             
-            // 4. 使用球体检测地面
-            IsGrounded = Physics.CheckSphere(
-                spherePosition, 
-                characterController.radius
-            );
-            
+            if (Physics.SphereCast(sphereStart, sphereRadius, Vector3.down, out RaycastHit hit, detectionDistance))
+            {
+                Debug.Log($"检测到碰撞: {hit.collider.name} 距离: {hit.distance}");
+                IsGrounded = true;
+            }
+            else
+            {
+                IsGrounded = false;
+            }
         }
 
         #endregion
@@ -327,7 +329,8 @@ namespace RMController
         {
             if (IsGrounded && isJumping)
             {
-                verticalVelocity = jumpVelocity;
+                verticalVelocity = Mathf.Sqrt(-2 * gravity * maxHeight);
+                //verticalVelocity = jumpVelocity;
             }
         }
         #endregion
@@ -588,31 +591,41 @@ namespace RMController
             
             // 如果组件仍然为空，直接返回
             if (playerTransform == null || characterController == null) return;
+    
+            // 使用与CheckGround()完全一致的计算逻辑
+            Vector3 sphereStart = playerTransform.position + (Vector3.up * groundCheckOffset);
+            float detectionDistance = groundCheckOffset - characterController.radius * 2 * characterController.skinWidth;
+            float sphereRadius = characterController.radius;
+    
+            // 1. 绘制检测起点（SphereCast起始位置）
+            Gizmos.color = Color.blue;
+            Gizmos.DrawWireSphere(sphereStart, sphereRadius);
             
-            // 1. 在角色控制器中点绘制白色小球
-            Vector3 centerPoint = playerTransform.position;
-            Gizmos.color = Color.white;
-            Gizmos.DrawWireSphere(centerPoint, 0.05f);
-            
-            // 2. 从中点向下绘制红色射线（长度=角色高度一半）
-            float halfHeight = characterController.height / 2f;
-            Vector3 bottomPoint = centerPoint + Vector3.down * halfHeight;
-            Gizmos.color = Color.red;
-            Gizmos.DrawLine(centerPoint, bottomPoint);
-            
-            // 3. 在底部位置绘制地面检测球体
-            // 计算检测球位置（底部向下偏移一点）
-            Vector3 spherePosition = bottomPoint + Vector3.down * groundCheckOffset;
-            
-            // 根据地面检测状态选择颜色
+            // 添加半透明内部球体
+            Gizmos.color = new Color(0, 0, 1, 0.3f); // 半透明蓝色
+            Gizmos.DrawSphere(sphereStart, sphereRadius);
+    
+            // 2. 绘制检测方向线
             Gizmos.color = IsGrounded ? Color.green : Color.red;
+            Gizmos.DrawLine(sphereStart, sphereStart + Vector3.down * detectionDistance);
+    
+            // 3. 绘制检测终点（SphereCast结束位置）
+            Vector3 endPosition = sphereStart + Vector3.down * detectionDistance;
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(endPosition, sphereRadius);
             
-            // 绘制球体（使用角色控制器半径）
-            Gizmos.DrawWireSphere(spherePosition, characterController.radius);
+            // 添加半透明内部球体
+            Gizmos.color = new Color(1, 1, 0, 0.3f); // 半透明黄色
+            Gizmos.DrawSphere(endPosition, sphereRadius);
             
-            // 添加半透明内部球体以便更好观察
-            Gizmos.color = new Color(Gizmos.color.r, Gizmos.color.g, Gizmos.color.b, 0.3f);
-            Gizmos.DrawSphere(spherePosition, characterController.radius);
+            // 4. 绘制检测路径（显示SphereCast的移动轨迹）
+            Gizmos.color = new Color(1, 0, 1, 0.5f); // 半透明紫色
+            for (int i = 0; i < 10; i++)
+            {
+                float t = (float)i / 9f;
+                Vector3 pathPoint = Vector3.Lerp(sphereStart, endPosition, t);
+                Gizmos.DrawWireSphere(pathPoint, sphereRadius * 0.1f);
+            }
         }
         
         /// <summary>
